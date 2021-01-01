@@ -30,10 +30,10 @@ ENV PATH /root/google-cloud-sdk/bin:$PATH
 LABEL org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.name="backup" \
       org.label-schema.description="MongoDB backup automation tool" \
-      org.label-schema.url="https://github.com/seavus/mongo-backup" \
+      org.label-schema.url="https://github.com/jkljajic/mgob" \
       org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.vcs-url="https://github.com/seavus/mongo-backup" \
-      org.label-schema.vendor="seavus.com" \
+      org.label-schema.vcs-url="https://github.com/jkljajic/mgob" \
+      org.label-schema.vendor="jkljajic" \
       org.label-schema.version=$VERSION \
       org.label-schema.schema-version="1.0"
 
