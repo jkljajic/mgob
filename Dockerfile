@@ -12,30 +12,59 @@ RUN CGO_ENABLED=0 GOOS=linux \
         -a -installsuffix cgo \
         -o mgob github.com/stefanprodan/mgob/cmd/mgob
 
-FROM alpine:3.12
+FROM ubuntu:20.04
 
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
 
-ENV MONGODB_TOOLS_VERSION 4.2.3-r1
-ENV GNUPG_VERSION 2.2.23-r0
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Belgrade
+
+ENV MONGO_TOOLS_VERSION=4.4
 ENV GOOGLE_CLOUD_SDK_VERSION 316.0.0
-ENV AZURE_CLI_VERSION 2.13.0
+ENV AZURE_CLI_VERSION 2.17.0
 ENV AWS_CLI_VERSION 1.18.159
 ENV PATH /root/google-cloud-sdk/bin:$PATH
 
 LABEL org.label-schema.build-date=$BUILD_DATE \
-      org.label-schema.name="mgob" \
+      org.label-schema.name="backup" \
       org.label-schema.description="MongoDB backup automation tool" \
-      org.label-schema.url="https://github.com/stefanprodan/mgob" \
+      org.label-schema.url="https://github.com/seavus/mongo-backup" \
       org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.vcs-url="https://github.com/stefanprodan/mgob" \
-      org.label-schema.vendor="stefanprodan.com" \
+      org.label-schema.vcs-url="https://github.com/seavus/mongo-backup" \
+      org.label-schema.vendor="seavus.com" \
       org.label-schema.version=$VERSION \
       org.label-schema.schema-version="1.0"
 
-RUN apk add --no-cache ca-certificates tzdata mongodb-tools=${MONGODB_TOOLS_VERSION} gnupg=${GNUPG_VERSION}
+
+RUN apt update && apt upgrade -y 
+RUN apt install  -y --no-install-recommends gnupg \
+        ca-certificates \
+        tzdata \
+        sudo \
+        wget \
+        systemctl \
+        curl \
+        python3 \
+        python3-pip \
+        bash \
+        openssh-client \
+        git \
+        gcc \
+        libffi-dev \
+        musl-dev \
+        libssl-dev \
+        python3-dev \
+        unzip \
+        make
+#libc6:i386 \
+
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-$MONGO_TOOLS_VERSION.asc | apt-key add -
+RUN echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/$MONGO_TOOLS_VERSION multiverse" | tee /etc/apt/sources.list.d/mongodb-org-$MONGO_TOOLS_VERSION.list
+
+RUN apt update && apt install -y mongodb-database-tools mongodb-org-database-tools-extra  mongodb-org-shell mongodb-org-tools
+
 ADD https://dl.minio.io/client/mc/release/linux-amd64/mc /usr/bin
 RUN chmod u+x /usr/bin/mc
 
@@ -49,15 +78,7 @@ WORKDIR /root/
 
 #install gcloud
 # https://github.com/GoogleCloudPlatform/cloud-sdk-docker/blob/69b7b0031d877600a9146c1111e43bc66b536de7/alpine/Dockerfile
-RUN apk --no-cache add \
-        curl \
-        python3 \
-        py3-pip \
-        bash \
-        libc6-compat \
-        openssh-client \
-        git \
-    && pip3 --no-cache-dir install --upgrade pip && \
+RUN pip3 --no-cache-dir install --upgrade pip && \
     pip --no-cache-dir install wheel && \
     pip --no-cache-dir install crcmod && \
     curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${GOOGLE_CLOUD_SDK_VERSION}-linux-x86_64.tar.gz && \
@@ -70,11 +91,9 @@ RUN apk --no-cache add \
     gcloud --version
 
 # install azure-cli and aws-cli
-RUN apk --no-cache add --virtual=build gcc libffi-dev musl-dev openssl-dev python3-dev make && \
-  pip --no-cache-dir install cffi && \
-  pip --no-cache-dir --use-feature=2020-resolver install azure-cli==${AZURE_CLI_VERSION} && \
-  pip --no-cache-dir install awscli==${AWS_CLI_VERSION} && \
-  apk del --purge build
+RUN pip --no-cache-dir install cffi && \
+    pip --no-cache-dir --use-feature=2020-resolver install azure-cli==${AZURE_CLI_VERSION} && \
+    pip --no-cache-dir install awscli==${AWS_CLI_VERSION} 
 
 COPY --from=0 /go/src/github.com/stefanprodan/mgob/mgob .
 
