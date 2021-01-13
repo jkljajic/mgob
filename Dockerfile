@@ -96,6 +96,8 @@ RUN pip --no-cache-dir install cffi && \
     pip --no-cache-dir install awscli==${AWS_CLI_VERSION} 
 
 COPY --from=0 /go/src/github.com/stefanprodan/mgob/mgob .
+COPY /scripts/restore.sh /usr/bin
+run chmod 0755 /usr/bin/restore.sh
 
 VOLUME ["/config", "/storage", "/tmp", "/data"]
 
